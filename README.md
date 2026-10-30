@@ -194,6 +194,7 @@ See **[BENCHMARK.md](BENCHMARK.md)** for methodology and limitations.
 | `SH011` | Low | Unpinned `npx` execution |
 | `SH012` | Low | Broad recursive file access |
 | `SH013` | High | Remote content executed via Python `exec` / `eval` |
+| `SH015` | Critical | Curl-style download piped to `Invoke-Expression` |
 
 Every finding includes severity, rule ID, source file, source line, matched instruction and remediation guidance.
 
@@ -218,10 +219,41 @@ Other output modes:
 ```bash
 node src/cli.js scan . --json
 node src/cli.js scan . --sarif > skillhawk.sarif
+node src/cli.js scan . --sarif skillhawk.sarif   # write the SARIF file directly
 node src/cli.js scan . --fail-on high
 ```
 
 No API key is required.
+
+### GitHub code scanning (SARIF)
+
+Upload SkillHawk findings to GitHub code scanning with the official upload action:
+
+```yaml
+name: SkillHawk scan
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run SkillHawk scan
+        run: |
+          git clone --depth 1 https://github.com/Berserk-hub150/skillhawk.git /tmp/skillhawk
+          node /tmp/skillhawk/src/cli.js scan . --sarif skillhawk.sarif
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: skillhawk.sarif
+```
 
 ---
 
